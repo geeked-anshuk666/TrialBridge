@@ -1,0 +1,1 @@
+# Changelog\n\n## [Unreleased]\n\n### Added\n- Added FastAPI search and notification MVP, SQLite schema, registry timeout isolation, and React/Vite patient interface.\n\n### Security\n- Enforced minimal subscription retention and documented the informational-only medical disclaimer.\n\n### Documentation\n- Added the required public and private TrialBridge documentation tree.\n
