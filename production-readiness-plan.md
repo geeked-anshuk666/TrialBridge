@@ -18,7 +18,9 @@ Ship a free-tier MVP that can be deployed tomorrow: Next.js PWA on Vercel, FastA
 - Do not persist raw patient descriptions or treatment histories.
 - Use deterministic registry retrieval; use Groq only for extraction, scoring, and explanation.
 - Implement the 3D hero without requiring paid assets or services.
-- Defer full accounts, clinical decision support, payments, and all-registry coverage.
+- Add a comparison workspace, doctor-question export, locally saved shortlist, travel/freshness signals, compassionate onboarding, and notification preferences.
+- Expand registry coverage only through stable public APIs or clearly marked adapter stubs; do not scrape sources that prohibit automated access.
+- Keep clinical decision support out of scope: all eligibility language remains informational and clinician-confirmed.
 
 ## Acceptance gates
 
