@@ -1,0 +1,1 @@
+.signal-wrap{position:relative}.signal-wrap .signal-object{visibility:hidden}.webgl-signal{position:absolute;inset:0;z-index:3}.webgl-signal canvas{width:100%!important;height:100%!important}@media(prefers-reduced-motion:reduce){.webgl-signal{display:none}.signal-wrap .signal-object{visibility:visible}}
