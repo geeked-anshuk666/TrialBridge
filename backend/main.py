@@ -2,11 +2,13 @@ import asyncio
 import json
 import os
 import uuid
+import time
+from collections import defaultdict, deque
 from datetime import datetime
 from typing import Any
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -20,6 +22,18 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
 app = FastAPI(title="TrialBridge API", version="0.1.0")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+AI_RATE_LIMIT = int(os.getenv("AI_RATE_LIMIT", "20"))
+AI_RATE_WINDOW_SECONDS = int(os.getenv("AI_RATE_WINDOW_SECONDS", "3600"))
+_ai_requests: dict[str, deque[float]] = defaultdict(deque)
+
+def enforce_ai_limit(request: Request) -> None:
+    user_key = request.headers.get("x-user-id") or (request.client.host if request.client else "anonymous")
+    now = time.time(); bucket = _ai_requests[user_key]
+    while bucket and bucket[0] <= now - AI_RATE_WINDOW_SECONDS: bucket.popleft()
+    if len(bucket) >= AI_RATE_LIMIT:
+        retry_after = max(1, int(AI_RATE_WINDOW_SECONDS - (now - bucket[0])))
+        raise HTTPException(status_code=429, detail="AI usage limit reached for this user", headers={"Retry-After": str(retry_after)})
+    bucket.append(now)
 
 class SearchRequest(BaseModel):
     patient_description: str = Field(min_length=1, max_length=10000)
@@ -105,7 +119,8 @@ async def query_registry(name: str, profile: PatientProfile) -> tuple[str, list[
         return name, []
 
 @app.post("/api/search", response_model=SearchResponse)
-async def search(req: SearchRequest) -> SearchResponse:
+async def search(req: SearchRequest, request: Request) -> SearchResponse:
+    enforce_ai_limit(request)
     correlation_id = str(uuid.uuid4())
     profile = extract_profile(req)
     registry_names = ["ClinicalTrials.gov", "EU CTR", "ISRCTN"]
