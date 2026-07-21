@@ -328,6 +328,18 @@ button:disabled {
   box-shadow: none;
 }
 
+.search-alert {
+  max-width: 610px;
+  margin-top: 14px;
+  border: 1px solid rgba(255, 122, 89, 0.36);
+  border-radius: 14px;
+  background: rgba(255, 122, 89, 0.1);
+  color: #ffe5da;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .globe-stage {
   position: relative;
   min-height: 570px;
@@ -527,6 +539,52 @@ button:disabled {
   gap: 26px;
   border-top: 1px solid rgba(6, 7, 16, 0.22);
   padding: 30px 0;
+}
+
+.empty-state {
+  border: 1px solid rgba(6, 7, 16, 0.16);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(53, 215, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(255, 246, 238, 0.92));
+  box-shadow: 0 24px 70px rgba(31, 22, 39, 0.1);
+  padding: clamp(24px, 4vw, 42px);
+}
+
+.empty-state h3 {
+  max-width: 820px;
+  margin: 12px 0 16px;
+  color: var(--ink);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(2rem, 4vw, 4.2rem);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.empty-state p {
+  max-width: 700px;
+  color: #5e5864;
+  line-height: 1.7;
+}
+
+.empty-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.empty-prompts button {
+  min-height: 42px;
+  border: 1px solid rgba(6, 7, 16, 0.16);
+  border-radius: 999px;
+  background: #080912;
+  color: var(--paper);
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .trial-index {

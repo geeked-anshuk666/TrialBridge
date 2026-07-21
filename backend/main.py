@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import re
 import uuid
 import time
 from collections import defaultdict, deque
@@ -25,6 +26,13 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 AI_RATE_LIMIT = int(os.getenv("AI_RATE_LIMIT", "20"))
 AI_RATE_WINDOW_SECONDS = int(os.getenv("AI_RATE_WINDOW_SECONDS", "3600"))
 _ai_requests: dict[str, deque[float]] = defaultdict(deque)
+STOPWORDS = {
+    "about", "after", "again", "already", "because", "being", "condition", "diagnosed",
+    "doctor", "finding", "from", "have", "help", "looking", "mild", "need", "patient",
+    "reason", "severe", "some", "symptom", "symptoms", "that", "this", "trial", "trials",
+    "treatment", "want", "were", "what", "with"
+}
+SHORT_MEDICAL_TERMS = {"als", "hiv", "ms"}
 
 def enforce_ai_limit(request: Request) -> None:
     user_key = request.headers.get("x-user-id") or (request.client.host if request.client else "anonymous")
@@ -88,9 +96,20 @@ def init_db() -> None:
 def startup() -> None:
     init_db()
 
+def extract_keywords(text: str) -> list[str]:
+    words = re.findall(r"[a-zA-Z0-9+-]+", text.lower())
+    keywords = [
+        word for word in words
+        if (len(word) > 3 or word in SHORT_MEDICAL_TERMS) and word not in STOPWORDS
+    ]
+    deduped = list(dict.fromkeys(keywords))
+    return deduped[:8]
+
 def extract_profile(req: SearchRequest) -> PatientProfile:
     language = req.override_language or ("hi" if any("\u0900" <= c <= "\u097f" for c in req.patient_description) else "en")
-    words = [w.strip(".,!?()") for w in req.patient_description.lower().split() if len(w) > 3][:8]
+    words = extract_keywords(req.patient_description)
+    if not words:
+        words = [req.patient_description.strip()[:80]]
     return PatientProfile(detected_language=language, condition_english=req.patient_description if language == "en" else "condition described by patient", condition_keywords=words)
 
 def ai_explain(trial: TrialRaw, language: str) -> ExplainedTrial:
@@ -109,11 +128,33 @@ async def query_registry(name: str, profile: PatientProfile) -> tuple[str, list[
     try:
         if name == "ClinicalTrials.gov":
             async with httpx.AsyncClient(timeout=4) as client:
-                r = await client.get("https://clinicaltrials.gov/api/v2/studies", params={"query.term": " ".join(profile.condition_keywords), "filter.overallStatus": "RECRUITING", "pageSize": 8})
-                r.raise_for_status()
-                studies = r.json().get("studies", [])
-                trials = [TrialRaw(nct_id=s.get("protocolSection", {}).get("identificationModule", {}).get("nctId", "unknown"), source_registry=name, title=s.get("protocolSection", {}).get("identificationModule", {}).get("briefTitle", "Untitled"), summary=s.get("protocolSection", {}).get("descriptionModule", {}).get("briefSummary", "")) for s in studies]
-                return name, trials
+                queries = list(dict.fromkeys([
+                    " ".join(profile.condition_keywords).strip(),
+                    " ".join(profile.condition_keywords[:4]).strip(),
+                    profile.condition_keywords[0] if profile.condition_keywords else "",
+                    profile.condition_english.strip()
+                ]))
+                queries = [query for query in queries if query]
+                for index, query in enumerate(queries):
+                    params = {"query.term": query, "pageSize": 8}
+                    if index < 2:
+                        params["filter.overallStatus"] = "RECRUITING"
+                    r = await client.get("https://clinicaltrials.gov/api/v2/studies", params=params)
+                    r.raise_for_status()
+                    studies = r.json().get("studies", [])
+                    if studies:
+                        trials = [
+                            TrialRaw(
+                                nct_id=s.get("protocolSection", {}).get("identificationModule", {}).get("nctId", "unknown"),
+                                source_registry=name,
+                                title=s.get("protocolSection", {}).get("identificationModule", {}).get("briefTitle", "Untitled"),
+                                summary=s.get("protocolSection", {}).get("descriptionModule", {}).get("briefSummary", ""),
+                                status=s.get("protocolSection", {}).get("statusModule", {}).get("overallStatus", "UNKNOWN")
+                            )
+                            for s in studies
+                        ]
+                        return name, trials
+                return name, []
         return name, []
     except Exception:
         return name, []

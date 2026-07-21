@@ -15,6 +15,7 @@ export default function Home() {
   const [text, setText] = useState('');
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
   const [saved, setSaved] = useState([]);
   const [compare, setCompare] = useState([]);
 
@@ -48,14 +49,24 @@ export default function Home() {
   };
 
   async function search() {
+    const query = text.trim();
+    if (!query) return;
     setBusy(true);
+    setError('');
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/search`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({patient_description: text})
+        body: JSON.stringify({patient_description: query})
       });
-      setData(await response.json());
+      if (!response.ok) {
+        throw new Error(`Search failed with status ${response.status}`);
+      }
+      const payload = await response.json();
+      setData(payload);
+      setTimeout(() => document.getElementById('trial-results')?.scrollIntoView({behavior: 'smooth', block: 'start'}), 40);
+    } catch (searchError) {
+      setError('TrialBridge could not complete the search. Check that the backend is running, then try again.');
     } finally {
       setBusy(false);
     }
@@ -117,11 +128,12 @@ export default function Home() {
                 />
                 <div className="search-actions">
                   <span>No account. No raw text stored.</span>
-                  <button disabled={!text || busy} onClick={search}>
+                  <button disabled={!text.trim() || busy} onClick={search}>
                     {busy ? 'Searching registries...' : 'Begin discovery'}
                   </button>
                 </div>
               </div>
+              {error && <div className="search-alert" role="alert">{error}</div>}
             </div>
 
             <div className="globe-stage" aria-label="Animated global clinical trial signal">
@@ -170,7 +182,7 @@ export default function Home() {
       )}
 
       {data && (
-        <section className="results reveal">
+        <section className="results reveal" id="trial-results" aria-live="polite">
           <div className="results-head">
             <div>
               <p className="section-label">Signals received {data.explained_trials?.length || 0}</p>
@@ -181,6 +193,25 @@ export default function Home() {
               Status can change, so confirm every trial with the study team.
             </p>
           </div>
+
+          {data.explained_trials?.length === 0 && (
+            <div className="empty-state" role="status">
+              <p className="section-label">No shortlist yet</p>
+              <h3>No matching trials came back from the live registry search.</h3>
+              <p>
+                Try adding a formal diagnosis, disease stage, biomarker status, prior treatments, age, and preferred country or city.
+                Broad symptoms alone can be hard for trial registries to match.
+              </p>
+              <div className="empty-prompts">
+                <button onClick={() => setText('metastatic breast cancer HER2 negative prior chemotherapy near Boston')}>
+                  Use oncology example
+                </button>
+                <button onClick={() => setText(`${text.trim()} diagnosis stage prior treatments age location`.trim())}>
+                  Add detail prompts
+                </button>
+              </div>
+            </div>
+          )}
 
           {data.explained_trials?.map((trial, index) => (
             <article className="trial" key={trial.trial_id}>
