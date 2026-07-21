@@ -1,0 +1,20 @@
+@media (prefers-reduced-motion: no-preference) {
+  .signal-object .core {
+    animation: signal-core-revolve 14s linear infinite;
+    transform-style: preserve-3d;
+  }
+  .signal-object .h1 { animation: signal-ring-one 11s linear infinite; }
+  .signal-object .h2 { animation: signal-ring-two 17s linear infinite reverse; }
+}
+@keyframes signal-core-revolve {
+  from { transform: rotateY(0deg) rotateZ(0deg); }
+  to { transform: rotateY(360deg) rotateZ(360deg); }
+}
+@keyframes signal-ring-one {
+  from { transform: rotateX(66deg) rotateZ(15deg); }
+  to { transform: rotateX(66deg) rotateZ(375deg); }
+}
+@keyframes signal-ring-two {
+  from { transform: rotateY(68deg) rotateX(20deg); }
+  to { transform: rotateY(428deg) rotateX(20deg); }
+}

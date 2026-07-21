@@ -1,4 +1,5 @@
 import './globals.css';
+import './orbit.css';
 import {DM_Serif_Display, Manrope} from 'next/font/google';
 const display=DM_Serif_Display({subsets:['latin'],weight:'400',variable:'--font-display'});
 const body=Manrope({subsets:['latin'],variable:'--font-body'});
