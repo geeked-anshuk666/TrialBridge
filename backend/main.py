@@ -120,7 +120,10 @@ async def query_registry(name: str, profile: PatientProfile) -> tuple[str, list[
 
 @app.post("/api/search", response_model=SearchResponse)
 async def search(req: SearchRequest, request: Request) -> SearchResponse:
-    enforce_ai_limit(request)
+    # Search remains fully usable without Groq. Apply the per-user limit only
+    # when the optional AI explanation enhancement can actually be invoked.
+    if GROQ_API_KEY:
+        enforce_ai_limit(request)
     correlation_id = str(uuid.uuid4())
     profile = extract_profile(req)
     registry_names = ["ClinicalTrials.gov", "EU CTR", "ISRCTN"]
@@ -148,3 +151,14 @@ def subscribe(req: SubscribeRequest) -> dict[str, Any]:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
+@app.get("/ready")
+def ready() -> dict[str, str]:
+    if not DATABASE_URL:
+        raise HTTPException(status_code=503, detail="Database is not configured")
+    try:
+        with psycopg.connect(DATABASE_URL, connect_timeout=5) as db:
+            db.execute("SELECT 1")
+        return {"status": "ready"}
+    except Exception as error:
+        raise HTTPException(status_code=503, detail="Database is unavailable") from error
