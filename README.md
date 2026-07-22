@@ -7,6 +7,7 @@ It is designed for people who do not know registry terminology, may be searching
 ## Table of Contents
 
 - [Why TrialBridge Exists](#why-trialbridge-exists)
+- [Demo Links](#demo-links)
 - [What It Does Today](#what-it-does-today)
 - [Current Scope](#current-scope)
 - [Product Principles](#product-principles)
@@ -23,6 +24,11 @@ It is designed for people who do not know registry terminology, may be searching
 - [Hackathon Context](#hackathon-context)
 - [Contributing](#contributing)
 - [License](#license)
+
+## Demo Links
+
+- **Live Frontend (Vercel)**: [https://trialbridge.vercel.app](https://trialbridge.vercel.app)
+- **Live Backend API (Render)**: [https://trialbridge-backend.onrender.com](https://trialbridge-backend.onrender.com)
 
 ## Why TrialBridge Exists
 
