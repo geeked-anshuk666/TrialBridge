@@ -1,6 +1,4 @@
-.private_docs/
-.vibeskills/
-outputs/
+
 backend/.env
 backend/*.db
 frontend/node_modules/
