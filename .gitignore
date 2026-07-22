@@ -8,3 +8,5 @@ frontend/next-build/
 frontend/public/sw.js
 frontend/public/workbox-*.js
 backend/__pycache__/
+
+*.venv/
