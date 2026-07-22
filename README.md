@@ -4,6 +4,26 @@ TrialBridge is a clinical trial discovery MVP that turns plain-language patient 
 
 It is designed for people who do not know registry terminology, may be searching in everyday language, and need a calmer starting point before talking with a doctor or study team.
 
+## Table of Contents
+
+- [Why TrialBridge Exists](#why-trialbridge-exists)
+- [What It Does Today](#what-it-does-today)
+- [Current Scope](#current-scope)
+- [Product Principles](#product-principles)
+- [Tech Stack & Architecture](#tech-stack--architecture)
+- [Repository Structure](#repository-structure)
+- [Request Flow](#request-flow)
+- [API Overview](#api-overview)
+- [Local Development](#local-development)
+- [Deployment](#deployment)
+- [Build Commands](#build-commands)
+- [Privacy and Safety](#privacy-and-safety)
+- [Known Limitations](#known-limitations)
+- [Roadmap](#roadmap)
+- [Hackathon Context](#hackathon-context)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Why TrialBridge Exists
 
 Clinical trial registries are powerful, but they are not built for most patients. People usually start with symptoms, diagnosis fragments, or treatment history in natural language. TrialBridge narrows that gap by:
@@ -280,17 +300,6 @@ Near-term improvements that would meaningfully strengthen the project:
 - build the full notification delivery loop
 - add clinician-friendly export improvements
 - tighten privacy, auth, and observability for production
-
-## Documentation
-
-The root README is the quickest starting point. For deeper context, the following detailed guides are available locally (excluded from remote source control):
-
-- [`docs/system_overview.md`](./docs/system_overview.md)
-- [`docs/api_reference.md`](./docs/api_reference.md)
-- [`docs/deployment_guide.md`](./docs/deployment_guide.md)
-- [`docs/security_architecture.md`](./docs/security_architecture.md)
-- [`docs/testing_strategy.md`](./docs/testing_strategy.md)
-- [`docs/known_tradeoffs.md`](./docs/known_tradeoffs.md)
 
 ## Hackathon Context
 
