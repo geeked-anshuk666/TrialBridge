@@ -67,6 +67,16 @@ TrialBridge is intentionally honest about what is implemented versus what is pla
 - Render for backend deployment
 - Vercel for frontend deployment
 
+```mermaid
+flowchart LR
+    U[User] --> F[Next.js Frontend]
+    F --> B[FastAPI Backend]
+    B --> C[ClinicalTrials.gov API]
+    B --> G[Groq API Optional]
+    B --> N[(Neon Postgres)]
+    F --> L[Local Browser Storage]
+```
+
 ## Repository Structure
 
 ```text
@@ -90,6 +100,20 @@ TrialBridge is intentionally honest about what is implemented versus what is pla
 4. Raw registry results are converted into plain-language trial summaries.
 5. If Groq is configured, explanations are improved with localized, structured output.
 6. The frontend renders a shortlist, or a clear empty-state if no trials are found.
+
+```mermaid
+flowchart TD
+    A[Free-text patient input] --> B[Keyword and profile extraction]
+    B --> C[Registry query]
+    C --> D{Trials found?}
+    D -->|Yes| E[Plain-language shortlist]
+    D -->|No| F[Guided empty-state feedback]
+    E --> G{Groq configured?}
+    G -->|Yes| H[Enhanced explanation and localization]
+    G -->|No| I[Deterministic fallback explanation]
+    H --> J[Frontend shortlist compare and print]
+    I --> J
+```
 
 ## API Overview
 
