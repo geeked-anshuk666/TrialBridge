@@ -42,30 +42,23 @@ TrialBridge is intentionally honest about what is implemented versus what is pla
 - Plain language over registry jargon
 - Useful even when AI is unavailable
 
-## Architecture
+## Tech Stack & Architecture
 
-### Frontend
-
-- Next.js 14
-- React 18
-- GSAP for motion
-- Three.js / React Three Fiber for the animated globe
-- `next-pwa` for PWA support
-
-### Backend
-
-- FastAPI
-- Uvicorn
-- `httpx` for registry calls
-- `psycopg` for Neon/Postgres access
-- `python-dotenv` for local configuration
-- Groq SDK for optional AI explanation enhancement
-
-### Data and Infrastructure
-
-- Neon Postgres for subscriptions and minimal persistence
-- Render for backend deployment
-- Vercel for frontend deployment
+| Layer | Technology | Purpose / Role |
+| :--- | :--- | :--- |
+| **Frontend Framework** | Next.js 14 (React 18) | Core framework utilizing App Router for fast, structured rendering. |
+| **Styling & Theme** | Vanilla CSS | Zero-dependency styling for precise control over the cinematic UI. |
+| **Motion Design** | GSAP | Rich micro-animations and smooth transition choreography. |
+| **3D Rendering** | Three.js / React Three Fiber | Renders the interactive, animated globe on the landing experience. |
+| **Offline Support** | `next-pwa` | Enables PWA capabilities, including local service worker caching. |
+| **Backend API** | FastAPI | High-performance Python ASGI web framework for fast API request handling. |
+| **Web Server** | Uvicorn | Production-ready ASGI server implementation. |
+| **Registry Integration** | `httpx` | Asynchronous client for querying live registry data from ClinicalTrials.gov. |
+| **Database Client** | `psycopg` | Connects the backend securely to the Serverless Postgres instance. |
+| **AI Inference** | Groq SDK (Llama 3.1) | Optional service to enhance and localize plain-language trial explanations. |
+| **Data Persistence** | Neon Postgres | Serverless cloud PostgreSQL database for keeping subscription state. |
+| **Backend Hosting** | Render | Managed hosting platform using Docker containers for standard deployment. |
+| **Frontend Hosting** | Vercel | Global CDN deployment for static assets and Next.js edge-rendering. |
 
 ```mermaid
 flowchart LR
@@ -81,15 +74,15 @@ flowchart LR
 
 ```text
 .
-|-- backend/                     FastAPI API, Dockerfile, Python dependencies
-|-- frontend/                    Next.js application
-|   |-- app/                     Active App Router frontend
-|   |-- components/              Shared UI components
-|   |-- public/                  PWA assets
-|-- docs/                        Technical and architectural documentation
-|-- meta_docs/                   Earlier planning and hackathon support docs
-|-- main_docs_for_hackathon/     Narrative and presentation material
-|-- render.yaml                  Render backend deployment config
+|-- backend/                     FastAPI API code, Dockerfile, Python dependencies
+|-- frontend/                    Next.js application files
+|   |-- app/                     Active App Router pages & assets
+|   |-- components/              Reusable React UI components
+|   |-- public/                  Static resources & PWA manifests
+|-- docs/                        Local technical docs (ignored from git)
+|-- meta_docs/                   Local project planning docs (ignored from git)
+|-- main_docs_for_hackathon/     Local presentations & notes (ignored from git)
+|-- render.yaml                  Render service blueprint config
 ```
 
 ## Request Flow
@@ -290,7 +283,7 @@ Near-term improvements that would meaningfully strengthen the project:
 
 ## Documentation
 
-The root README is the quickest starting point. For deeper context, use:
+The root README is the quickest starting point. For deeper context, the following detailed guides are available locally (excluded from remote source control):
 
 - [`docs/system_overview.md`](./docs/system_overview.md)
 - [`docs/api_reference.md`](./docs/api_reference.md)
