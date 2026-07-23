@@ -201,12 +201,13 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
   }
 
   return (
-    <div className={`relative flex flex-col items-center justify-center ${className}`}>
+    <div className={`relative flex flex-col items-center justify-center pointer-events-auto ${className}`} style={{ zIndex: 2 }}>
       <canvas
         ref={canvasRef}
         className="w-auto h-auto cursor-grab active:cursor-grabbing pointer-events-auto touch-none"
+        style={{ display: 'block' }}
       />
-      <div className="mt-2 text-[10px] text-amber-200/75 tracking-widest uppercase px-3 py-1 rounded-full bg-[#090d22]/80 border border-white/10 backdrop-blur-md select-none">
+      <div className="mt-2 text-[10px] text-amber-200/75 tracking-widest uppercase px-3 py-1 rounded-full bg-[#090d22]/80 border border-white/10 backdrop-blur-md select-none pointer-events-none">
         Drag to rotate • Scroll / Pinch to zoom
       </div>
     </div>
