@@ -30,22 +30,27 @@ export default function Home() {
     const compute = () => {
       if (!globeColRef.current) return;
       const rect = globeColRef.current.getBoundingClientRect();
+      if (!rect.width || !rect.height) return; // Prevent division by zero / NaN
+
       const colCx = rect.left + rect.width / 2;
       const colCy = rect.top + rect.height / 2;
-      const scale = Math.max(
+      
+      const rawScale = Math.max(
         (window.innerWidth * 1.08) / rect.width,
         (window.innerHeight * 1.08) / rect.height
       );
-      setExpansion({
-        scale,
-        tx: window.innerWidth / 2 - colCx,
-        ty: window.innerHeight / 2 - colCy,
-      });
+      
+      const scale = isFinite(rawScale) ? rawScale : 2.5;
+      const tx = isFinite(window.innerWidth / 2 - colCx) ? window.innerWidth / 2 - colCx : 0;
+      const ty = isFinite(window.innerHeight / 2 - colCy) ? window.innerHeight / 2 - colCy : 0;
+
+      setExpansion({ scale, tx, ty });
     };
     const t = setTimeout(compute, 150);
     window.addEventListener('resize', compute);
     return () => { clearTimeout(t); window.removeEventListener('resize', compute); };
   }, []);
+
 
   const handleGlobeZoom = useCallback((fraction) => {
     setGlobeZoom(fraction);
@@ -72,14 +77,11 @@ export default function Home() {
         scale: 0.93,
         scrollTrigger: {trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1}
       });
-
-      gsap.utils.toArray('.reveal').forEach((element) => {
-        gsap.from(element, {y: 42, opacity: 0, scrollTrigger: {trigger: element, start: 'top 86%'}});
-      });
     }, root);
 
     return () => ctx.revert();
   }, []);
+
 
   const persistSaved = (next) => {
     setSaved(next);

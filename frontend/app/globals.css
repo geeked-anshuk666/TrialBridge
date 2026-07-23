@@ -275,7 +275,7 @@ button:disabled {
 .hero-copy {
   max-width: 560px;
   margin: 0;
-  color: rgba(251, 247, 239, 0.78);
+  color: rgba(255, 255, 255, 0.94);
   font-size: 17px;
   line-height: 1.7;
   text-shadow: 0 2px 30px rgba(0, 0, 0, 0.8);
@@ -319,8 +319,9 @@ button:disabled {
 }
 
 .search-panel textarea::placeholder {
-  color: rgba(251, 247, 239, 0.38);
+  color: rgba(255, 255, 255, 0.55);
 }
+
 
 .search-actions {
   display: flex;
@@ -998,4 +999,22 @@ button:disabled {
     opacity: 1;
   }
 }
+
+/* CSS Reveal fadeInUp animation */
+.reveal {
+  opacity: 0;
+  animation: fadeInUpReveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUpReveal {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
