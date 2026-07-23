@@ -1,13 +1,13 @@
 'use client';
 
 import {useEffect, useRef, useState} from 'react';
+import dynamic from 'next/dynamic';
 import gsap from 'gsap';
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
 import {useGSAP} from '@gsap/react';
-import AnimatedShaderHero from '../components/ui/animated-shader-hero';
-import RotatingEarth from '../components/ui/wireframe-dotted-globe';
 
-gsap.registerPlugin(ScrollTrigger);
+const AnimatedShaderHero = dynamic(() => import('../components/ui/animated-shader-hero'), { ssr: false });
+const RotatingEarth = dynamic(() => import('../components/ui/wireframe-dotted-globe'), { ssr: false });
 
 const storageKey = 'trialbridge-shortlist';
 
@@ -24,25 +24,31 @@ export default function Home() {
     setSaved(JSON.parse(localStorage.getItem(storageKey) || '[]'));
   }, []);
 
-  useGSAP(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    gsap.registerPlugin(ScrollTrigger);
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    gsap
-      .timeline({defaults: {ease: 'power3.out'}})
-      .from('.nav-item', {y: -18, opacity: 0, stagger: 0.07})
-      .from('.hero-kicker, .hero-title span, .hero-copy, .search-panel', {y: 34, opacity: 0, stagger: 0.09}, '-=.25')
-      .from('.signal-card, .metric-card', {scale: 0.94, y: 22, opacity: 0, stagger: 0.08}, '-=.2');
+    const ctx = gsap.context(() => {
+      gsap
+        .timeline({defaults: {ease: 'power3.out'}})
+        .from('.nav-item', {y: -18, opacity: 0, stagger: 0.07})
+        .from('.hero-kicker, .hero-title span, .hero-copy, .search-panel', {y: 34, opacity: 0, stagger: 0.09}, '-=.25')
+        .from('.signal-card, .metric-card', {scale: 0.94, y: 22, opacity: 0, stagger: 0.08}, '-=.2');
 
-    gsap.to('.signal-wrap', {
-      y: -45,
-      scale: 0.93,
-      scrollTrigger: {trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1}
-    });
+      gsap.to('.signal-wrap', {
+        y: -45,
+        scale: 0.93,
+        scrollTrigger: {trigger: '.hero', start: 'top top', end: 'bottom top', scrub: 1}
+      });
 
-    gsap.utils.toArray('.reveal').forEach((element) => {
-      gsap.from(element, {y: 42, opacity: 0, scrollTrigger: {trigger: element, start: 'top 86%'}});
-    });
-  }, {scope: root});
+      gsap.utils.toArray('.reveal').forEach((element) => {
+        gsap.from(element, {y: 42, opacity: 0, scrollTrigger: {trigger: element, start: 'top 86%'}});
+      });
+    }, root);
+
+    return () => ctx.revert();
+  }, []);
 
   const persistSaved = (next) => {
     setSaved(next);
@@ -138,8 +144,8 @@ export default function Home() {
             </div>
 
             <div className="globe-stage" aria-label="Animated global clinical trial signal">
-              <div className="signal-wrap flex items-center justify-center w-full h-full">
-                <RotatingEarth className="w-full h-full" />
+              <div className="signal-wrap flex items-center justify-center">
+                <RotatingEarth width={400} height={400} />
               </div>
               <div className="signal-card signal-card-top">
                 <strong>{data?.explained_trials?.length || 'AI+'}</strong>
