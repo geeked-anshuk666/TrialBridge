@@ -304,71 +304,55 @@ uniform float time;
 #define FC gl_FragCoord.xy
 #define T time
 #define R resolution
-
-float hash(float n) { return fract(sin(n) * 43758.5453123); }
-
-float noise(vec2 p) {
-    vec2 i = floor(p), f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float n = i.x + i.y * 57.0;
-    return mix(mix(hash(n), hash(n + 1.0), f.x),
-               mix(hash(n + 57.0), hash(n + 58.0), f.x), f.y);
+#define MN min(R.x,R.y)
+float rnd(vec2 p) {
+  p=fract(p*vec2(12.9898,78.233));
+  p+=dot(p,p+34.56);
+  return fract(p.x*p.y);
 }
-
+float noise(in vec2 p) {
+  vec2 i=floor(p), f=fract(p), u=f*f*(3.-2.*f);
+  float
+  a=rnd(i),
+  b=rnd(i+vec2(1,0)),
+  c=rnd(i+vec2(0,1)),
+  d=rnd(i+1.);
+  return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);
+}
 float fbm(vec2 p) {
-    float f = 0.0;
-    mat2 m = mat2(0.8, 0.6, -0.6, 0.8);
-    f += 0.5000 * noise(p); p = m * p * 2.02;
-    f += 0.2500 * noise(p); p = m * p * 2.03;
-    f += 0.1250 * noise(p); p = m * p * 2.01;
-    f += 0.0625 * noise(p);
-    return f;
+  float st=.0, a=1.; mat2 m=mat2(1.,-.5,.2,1.2);
+  for (int i=0; i<5; i++) {
+    st+=a*noise(p);
+    p*=2.*m;
+    a*=.5;
+  }
+  return st;
 }
-
-void main() {
-    vec2 uv = (FC - 0.5 * R) / R.y;
-    
-    // Deep midnight blue cosmic nebula background
-    vec2 st = uv * 1.4;
-    float q = fbm(st + vec2(T * 0.02, T * 0.015));
-    float r = fbm(st + q * 1.3 + vec2(T * 0.015, -T * 0.03));
-    
-    vec3 baseColor = vec3(0.01, 0.025, 0.08);
-    vec3 cloudColor1 = vec3(0.03, 0.10, 0.28);
-    vec3 cloudColor2 = vec3(0.06, 0.18, 0.45);
-    
-    vec3 color = mix(baseColor, cloudColor1, q);
-    color = mix(color, cloudColor2, r * 0.85);
-    
-    // Horizontal Shooting Meteors / Light Streaks
-    for (float i = 1.0; i <= 14.0; i += 1.0) {
-        float speed = 0.45 + hash(i * 13.5) * 0.75;
-        float yPos = (hash(i * 37.1) - 0.5) * 1.5;
-        float xPos = mod((T * speed + hash(i * 91.3) * 12.0), 3.6) - 1.8;
-        
-        vec2 head = vec2(xPos, yPos);
-        vec2 diff = uv - head;
-        
-        // Horizontal tail stretching behind head (x < 0 relative to movement)
-        if (diff.x < 0.0 && diff.x > -0.65) {
-            float tailDist = abs(diff.x);
-            float yDist = abs(diff.y);
-            
-            float trailWidth = 0.0028 + (1.0 - tailDist / 0.65) * 0.002;
-            float trailAlpha = smoothstep(trailWidth, 0.0, yDist) * (1.0 - tailDist / 0.65);
-            
-            vec3 trailColor = mix(vec3(1.0, 0.92, 0.75), vec3(0.4, 0.7, 1.0), tailDist * 1.3);
-            color += trailColor * trailAlpha * 1.6;
-        }
-        
-        // Bright glowing meteor head
-        float headDist = length(diff);
-        float headGlow = 0.0016 / (headDist + 0.0008);
-        vec3 headColor = mix(vec3(1.0, 0.95, 0.85), vec3(1.0, 0.6, 0.2), headDist * 18.0);
-        color += headColor * headGlow * 0.85;
-    }
-    
-    O = vec4(color, 1.0);
+float clouds(vec2 p) {
+	float d=1., t=.0;
+	for (float i=.0; i<3.; i++) {
+		float a=d*fbm(i*10.+p.x*.2+.2*(1.+i)*p.y+d+i*i+p);
+		t=mix(t,d,a);
+		d=a;
+		p*=2./(i+1.);
+	}
+	return t;
+}
+void main(void) {
+	vec2 uv=(FC-.5*R)/MN,st=uv*vec2(2,1);
+	vec3 col=vec3(0);
+	float bg=clouds(vec2(st.x+T*.2,-st.y));
+	uv*=1.-.2*(sin(T*.15)*.5+.5);
+	for (float i=1.; i<10.; i++) {
+		uv+=.08*cos(i*vec2(.1+.01*i, .8)+i*i+T*.25+.1*uv.x);
+		vec2 p=uv;
+		float d=length(p);
+		col+=.0008/d*(cos(sin(i)*vec3(0.8,1.8,3.2))+1.);
+		float b=noise(i+p+bg*1.5);
+		col+=.0012*b/length(max(p,vec2(b*p.x*.02,p.y)));
+		col=mix(col,vec3(bg*.04,bg*.08,bg*.18),d);
+	}
+	O=vec4(col,1);
 }`;
 
 export default function AnimatedShaderHero({ children, className = '' }) {
