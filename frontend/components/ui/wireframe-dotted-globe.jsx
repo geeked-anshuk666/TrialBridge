@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react"
 import { geoOrthographic, geoPath, geoGraticule } from "d3-geo"
 import { timer } from "d3-timer"
 
-export default function RotatingEarth({ width = 440, height = 440, className = "" }) {
+export default function RotatingEarth({ width = 440, height = 440, className = "", onZoomFractionChange }) {
   const canvasRef = useRef(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const callbackRef = useRef(onZoomFractionChange)
+  useEffect(() => { callbackRef.current = onZoomFractionChange })
 
   useEffect(() => {
     if (typeof window === "undefined" || !canvasRef.current) return
@@ -186,6 +188,10 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
       const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomFactor))
       projection.scale(newScale)
       render()
+
+      // Notify parent of zoom fraction for parallax expansion
+      const fraction = (newScale - minScale) / (maxScale - minScale)
+      callbackRef.current?.(Math.max(0, Math.min(1, fraction)))
     }
 
     canvas.addEventListener("mousedown", handleMouseDown)

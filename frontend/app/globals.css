@@ -114,16 +114,23 @@ button:disabled {
 
 .topbar {
   position: relative;
-  z-index: 4;
+  z-index: 10;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 24px;
-  max-width: 1500px;
-  margin: 0 auto 22px;
+  max-width: 1200px;
+  margin: 0 auto 72px;
   font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  /* Glass pill nav — readable on animated background */
+  background: rgba(6, 7, 16, 0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 14px 28px;
 }
 
 .wordmark {
@@ -207,14 +214,31 @@ button:disabled {
   background: rgba(255, 255, 255, 0.36);
 }
 
-.hero-grid {
-  position: relative;
+/* Open hero grid — no device-shell card */
+.hero-open-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(430px, 1.08fr);
-  gap: clamp(28px, 5vw, 74px);
+  grid-template-columns: minmax(0, 0.9fr) minmax(480px, 1.1fr);
+  gap: clamp(28px, 5vw, 80px);
   align-items: center;
-  min-height: 650px;
-  padding: clamp(30px, 5vw, 76px);
+  min-height: calc(100svh - 240px);
+  padding: 0;
+}
+
+/* Globe expand col — receives CSS transform for parallax fullscreen */
+.globe-expand-col {
+  position: relative;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+/* Dark overlay that fades in as globe expands */
+.globe-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(4, 5, 14, 0.94);
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
 
 .hero-kicker,
@@ -225,6 +249,7 @@ button:disabled {
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.7);
 }
 
 .hero-title {
@@ -233,6 +258,7 @@ button:disabled {
   font-size: clamp(4.2rem, 7.2vw, 8.2rem);
   font-weight: 400;
   line-height: 0.88;
+  text-shadow: 0 4px 60px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 
 .hero-title span {
@@ -249,16 +275,22 @@ button:disabled {
   color: rgba(251, 247, 239, 0.78);
   font-size: 17px;
   line-height: 1.7;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.8);
 }
 
 .search-panel {
   margin-top: 34px;
   max-width: 610px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 16px;
-  background: rgba(8, 12, 30, 0.76);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 20px;
+  background: rgba(6, 8, 22, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 24px 80px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  padding: 22px;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
 }
 
 .search-panel label {
@@ -459,18 +491,25 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.08);
+  margin-top: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  max-width: 1200px;
 }
 
 .metric-card {
   padding: 22px clamp(18px, 3vw, 36px);
-  background: rgba(8, 10, 24, 0.82);
+  background: rgba(6, 8, 22, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .metric-card strong {
   font-size: 23px;
 }
+
 
 .workspace,
 .results {

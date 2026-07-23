@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import dynamic from 'next/dynamic';
 import gsap from 'gsap';
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
@@ -13,12 +13,41 @@ const storageKey = 'trialbridge-shortlist';
 
 export default function Home() {
   const root = useRef(null);
+  const globeColRef = useRef(null);
   const [text, setText] = useState('');
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState([]);
   const [compare, setCompare] = useState([]);
+  const [globeZoom, setGlobeZoom] = useState(0);
+  const [expansion, setExpansion] = useState({ scale: 2.5, tx: 0, ty: 0 });
+
+  // Compute how much to translate/scale the globe column to cover the viewport
+  useEffect(() => {
+    const compute = () => {
+      if (!globeColRef.current) return;
+      const rect = globeColRef.current.getBoundingClientRect();
+      const colCx = rect.left + rect.width / 2;
+      const colCy = rect.top + rect.height / 2;
+      const scale = Math.max(
+        (window.innerWidth * 1.08) / rect.width,
+        (window.innerHeight * 1.08) / rect.height
+      );
+      setExpansion({
+        scale,
+        tx: window.innerWidth / 2 - colCx,
+        ty: window.innerHeight / 2 - colCy,
+      });
+    };
+    const t = setTimeout(compute, 150);
+    window.addEventListener('resize', compute);
+    return () => { clearTimeout(t); window.removeEventListener('resize', compute); };
+  }, []);
+
+  const handleGlobeZoom = useCallback((fraction) => {
+    setGlobeZoom(fraction);
+  }, []);
 
   useEffect(() => {
     setSaved(JSON.parse(localStorage.getItem(storageKey) || '[]'));
@@ -91,9 +120,20 @@ export default function Home() {
       : compare.length < 3 ? [...compare, trial] : compare);
   };
 
+  const isExpanded = globeZoom > 0.05;
+  const backdropOpacity = Math.max(0, (globeZoom - 0.25) / 0.75);
+  const textOpacity = Math.max(0, 1 - globeZoom * 2.2);
+  const textY = globeZoom * -28;
+  const globeTransform = `translate(${globeZoom * expansion.tx}px, ${globeZoom * expansion.ty}px) scale(${1 + globeZoom * (expansion.scale - 1)})`;
+  const cardOpacity = Math.max(0, 1 - globeZoom * 3);
+
   return (
     <main ref={root}>
+      {/* Fixed WebGL shader canvas — always behind everything */}
       <AnimatedShaderHero />
+
+      {/* Dark backdrop that fades in as globe expands to fullscreen */}
+      <div className="globe-backdrop" style={{ opacity: backdropOpacity }} />
 
       <section className="animated-shader-hero hero">
         <nav className="topbar">
@@ -108,47 +148,60 @@ export default function Home() {
           </div>
         </nav>
 
-        <div className="device-shell">
-          <div className="device-bar">
-            <span />
-            <span />
-            <span />
+        <div className="hero-open-grid">
+          {/* Left — editorial text, fades out as globe expands */}
+          <div
+            className="hero-intel"
+            style={{
+              opacity: textOpacity,
+              transform: `translateY(${textY}px)`,
+              transition: 'opacity 0.35s ease, transform 0.35s ease',
+              pointerEvents: isExpanded ? 'none' : 'auto',
+            }}
+          >
+            <p className="hero-kicker">Global clinical trial discovery</p>
+            <h1 className="hero-title">
+              <span>Your private</span>
+              <span>trial intelligence</span>
+              <span>desk.</span>
+            </h1>
+            <p className="hero-copy">
+              Describe symptoms, diagnosis, stage, prior treatments, or location. TrialBridge turns registry noise into a calm shortlist you can discuss with a clinician.
+            </p>
+
+            <div className="search-panel">
+              <label htmlFor="trial-query">What are you looking for?</label>
+              <textarea
+                id="trial-query"
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                placeholder="Example: metastatic breast cancer, HER2 negative, already tried chemotherapy, near Boston..."
+              />
+              <div className="search-actions">
+                <span>No account. No raw text stored.</span>
+                <button disabled={!text.trim() || busy} onClick={search}>
+                  {busy ? 'Searching registries...' : 'Begin discovery'}
+                </button>
+              </div>
+            </div>
+            {error && <div className="search-alert" role="alert">{error}</div>}
           </div>
 
-          <div className="hero-grid">
-            <div className="hero-intel">
-              <p className="hero-kicker">Global clinical trial discovery</p>
-              <h1 className="hero-title">
-                <span>Your private</span>
-                <span>trial intelligence</span>
-                <span>desk.</span>
-              </h1>
-              <p className="hero-copy">
-                Describe symptoms, diagnosis, stage, prior treatments, or location. TrialBridge turns registry noise into a calm shortlist you can discuss with a clinician.
-              </p>
-
-              <div className="search-panel">
-                <label htmlFor="trial-query">What are you looking for?</label>
-                <textarea
-                  id="trial-query"
-                  value={text}
-                  onChange={(event) => setText(event.target.value)}
-                  placeholder="Example: metastatic breast cancer, HER2 negative, already tried chemotherapy, near Boston..."
-                />
-                <div className="search-actions">
-                  <span>No account. No raw text stored.</span>
-                  <button disabled={!text.trim() || busy} onClick={search}>
-                    {busy ? 'Searching registries...' : 'Begin discovery'}
-                  </button>
-                </div>
-              </div>
-              {error && <div className="search-alert" role="alert">{error}</div>}
+          {/* Right — globe, expands to fill page on max zoom */}
+          <div
+            className="globe-stage globe-expand-col"
+            ref={globeColRef}
+            style={{
+              transform: globeTransform,
+              transition: 'transform 0.55s cubic-bezier(0.16, 1, 0.3, 1)',
+              position: 'relative',
+              zIndex: isExpanded ? 100 : undefined,
+            }}
+          >
+            <div className="signal-wrap">
+              <RotatingEarth width={520} height={520} onZoomFractionChange={handleGlobeZoom} />
             </div>
-
-            <div className="globe-stage" aria-label="Animated global clinical trial signal">
-              <div className="signal-wrap flex items-center justify-center">
-                <RotatingEarth width={400} height={400} />
-              </div>
+            <div style={{ opacity: cardOpacity, transition: 'opacity 0.25s ease' }}>
               <div className="signal-card signal-card-top">
                 <strong>{data?.explained_trials?.length || 'AI+'}</strong>
                 <span>Ranked matches</span>
@@ -163,15 +216,17 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="metric-strip">
-            <div className="metric-card"><strong>Plain language</strong><span>Eligibility translated for real conversations</span></div>
-            <div className="metric-card"><strong>Core access without AI</strong><span>Registry discovery still works if Groq is unavailable</span></div>
-            <div className="metric-card"><strong>Doctor-ready</strong><span>Compare, save, and print a focused brief</span></div>
-          </div>
+        <div
+          className="metric-strip"
+          style={{ opacity: textOpacity, transition: 'opacity 0.35s ease', pointerEvents: isExpanded ? 'none' : 'auto' }}
+        >
+          <div className="metric-card"><strong>Plain language</strong><span>Eligibility translated for real conversations</span></div>
+          <div className="metric-card"><strong>Core access without AI</strong><span>Registry discovery still works if Groq is unavailable</span></div>
+          <div className="metric-card"><strong>Doctor-ready</strong><span>Compare, save, and print a focused brief</span></div>
         </div>
       </section>
-
 
 
       {(saved.length > 0 || compare.length > 0) && (
