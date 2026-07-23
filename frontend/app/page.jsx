@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import {ScrollTrigger} from 'gsap/ScrollTrigger';
 import {useGSAP} from '@gsap/react';
 import AnimatedShaderHero from '../components/ui/animated-shader-hero';
+import RotatingEarth from '../components/ui/wireframe-dotted-globe';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -137,12 +138,8 @@ export default function Home() {
             </div>
 
             <div className="globe-stage" aria-label="Animated global clinical trial signal">
-              <div className="signal-wrap">
-                <div className="signal-object">
-                  <div className="halo h1" />
-                  <div className="halo h2" />
-                  <div className="core"><span>TB</span></div>
-                </div>
+              <div className="signal-wrap flex items-center justify-center w-full h-full">
+                <RotatingEarth className="w-full h-full" />
               </div>
               <div className="signal-card signal-card-top">
                 <strong>{data?.explained_trials?.length || 'AI+'}</strong>
