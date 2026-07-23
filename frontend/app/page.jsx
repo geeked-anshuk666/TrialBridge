@@ -8,11 +8,13 @@ import {useGSAP} from '@gsap/react';
 
 const AnimatedShaderHero = dynamic(() => import('../components/ui/animated-shader-hero'), { ssr: false });
 const RotatingEarth = dynamic(() => import('../components/ui/wireframe-dotted-globe'), { ssr: false });
+const PwaInstaller = dynamic(() => import('../components/ui/pwa-installer'), { ssr: false });
 
 const storageKey = 'trialbridge-shortlist';
 
 export default function Home() {
   const root = useRef(null);
+
   const globeColRef = useRef(null);
   const [text, setText] = useState('');
   const [data, setData] = useState(null);
@@ -132,8 +134,11 @@ export default function Home() {
       {/* Fixed WebGL shader canvas — always behind everything */}
       <AnimatedShaderHero />
 
+      <PwaInstaller />
+
       {/* Dark backdrop that fades in as globe expands to fullscreen */}
       <div className="globe-backdrop" style={{ opacity: backdropOpacity }} />
+
 
       <section className="animated-shader-hero hero">
         <nav className="topbar">
