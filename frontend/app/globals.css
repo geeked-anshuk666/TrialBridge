@@ -22,10 +22,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--ink);
+  background: transparent;
   color: var(--paper);
   font-family: var(--font-body), Arial, sans-serif;
 }
+
 
 button,
 textarea {
@@ -42,10 +43,12 @@ button:disabled {
 
 .animated-shader-hero {
   position: relative;
+  z-index: 10;
   min-height: 100svh;
   padding: 26px clamp(18px, 4vw, 56px) 48px;
   background: transparent;
 }
+
 
 .shader-field {
   position: absolute;

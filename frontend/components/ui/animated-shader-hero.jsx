@@ -1,362 +1,266 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
-// Reusable Shader Background Hook
-const useShaderBackground = () => {
+export default function AnimatedShaderHero() {
   const canvasRef = useRef(null);
-  const animationFrameRef = useRef();
-  const rendererRef = useRef(null);
-  const pointersRef = useRef(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const dpr = Math.max(1, 0.5 * (window.devicePixelRatio || 1));
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
 
-    // WebGL Renderer class
-    class WebGLRenderer {
-      constructor(canvasEl, scaleVal) {
-        this.canvas = canvasEl;
-        this.scale = scaleVal;
-        this.gl = canvasEl.getContext('webgl2');
-        if (this.gl) {
-          this.gl.viewport(0, 0, canvasEl.width * scaleVal, canvasEl.height * scaleVal);
-        }
-        this.shaderSource = defaultShaderSource;
-        this.mouseMove = [0, 0];
-        this.mouseCoords = [0, 0];
-        this.pointerCoords = [0, 0];
-        this.nbrOfPointers = 0;
-        this.vertices = [-1, 1, -1, -1, 1, 1, 1, -1];
-        this.vertexSrc = `#version 300 es
-precision highp float;
-in vec4 position;
-void main(){gl_Position=position;}`;
+    let animFrameId;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    const handleResize = () => {
+      if (!canvasRef.current) return;
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      initStars();
+    };
+    window.addEventListener('resize', handleResize);
+
+    // --- Starfield Initialization ---
+    let stars = [];
+    const NUM_STARS = Math.min(300, Math.floor((width * height) / 4500));
+
+    const initStars = () => {
+      stars = [];
+      for (let i = 0; i < NUM_STARS; i++) {
+        stars.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          radius: Math.random() * 1.5 + 0.5,
+          alpha: Math.random() * 0.8 + 0.2,
+          baseAlpha: Math.random() * 0.7 + 0.2,
+          twinkleSpeed: Math.random() * 0.04 + 0.01,
+          phase: Math.random() * Math.PI * 2,
+          color: Math.random() > 0.75 ? '#35d7ff' : Math.random() > 0.6 ? '#ff7a59' : '#ffffff',
+        });
       }
+    };
+    initStars();
 
-      updateShader(source) {
+    // --- Shooting Stars System ---
+    let shootingStars = [];
+    let particles = [];
+
+    class ShootingStar {
+      constructor() {
         this.reset();
-        this.shaderSource = source;
-        this.setup();
-        this.init();
-      }
-
-      updateMove(deltas) {
-        this.mouseMove = deltas;
-      }
-
-      updateMouse(coords) {
-        this.mouseCoords = coords;
-      }
-
-      updatePointerCoords(coords) {
-        this.pointerCoords = coords;
-      }
-
-      updatePointerCount(nbr) {
-        this.nbrOfPointers = nbr;
-      }
-
-      updateScale(scaleVal) {
-        this.scale = scaleVal;
-        if (this.gl) {
-          this.gl.viewport(0, 0, this.canvas.width * scaleVal, this.canvas.height * scaleVal);
-        }
-      }
-
-      compile(shader, source) {
-        const gl = this.gl;
-        if (!gl) return;
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-          const error = gl.getShaderInfoLog(shader);
-          console.error('Shader compilation error:', error);
-        }
-      }
-
-      test(source) {
-        const gl = this.gl;
-        if (!gl) return null;
-        let result = null;
-        const shader = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-          result = gl.getShaderInfoLog(shader);
-        }
-        gl.deleteShader(shader);
-        return result;
       }
 
       reset() {
-        const gl = this.gl;
-        if (!gl) return;
-        if (this.program && !gl.getProgramParameter(this.program, gl.DELETE_STATUS)) {
-          if (this.vs) {
-            gl.detachShader(this.program, this.vs);
-            gl.deleteShader(this.vs);
-          }
-          if (this.fs) {
-            gl.detachShader(this.program, this.fs);
-            gl.deleteShader(this.fs);
-          }
-          gl.deleteProgram(this.program);
+        // Spawn from top or top-right/left edge
+        this.x = Math.random() * width * 1.2 - width * 0.1;
+        this.y = Math.random() * (height * 0.45);
+        this.length = Math.random() * 160 + 120;
+        this.speed = Math.random() * 12 + 10;
+        // Direction angle: ~35 deg to 50 deg down-right or down-left
+        this.angle = (Math.random() * 20 + 35) * (Math.PI / 180);
+        this.dx = Math.cos(this.angle) * this.speed;
+        this.dy = Math.sin(this.angle) * this.speed;
+
+        this.headRadius = Math.random() * 1.8 + 1.2;
+        this.life = 0;
+        this.maxLife = Math.random() * 90 + 70;
+        this.colorHead = '#ffffff';
+        this.colorMid = Math.random() > 0.4 ? '#35d7ff' : '#64b5f6';
+        this.colorTail = '#ff7a59';
+        this.active = true;
+      }
+
+      update() {
+        if (!this.active) return;
+        this.x += this.dx;
+        this.y += this.dy;
+        this.life++;
+
+        // Spawn trailing sparks at head
+        if (Math.random() < 0.6) {
+          particles.push({
+            x: this.x + (Math.random() - 0.5) * 4,
+            y: this.y + (Math.random() - 0.5) * 4,
+            vx: (Math.random() - 0.5) * 1.5 - this.dx * 0.05,
+            vy: (Math.random() - 0.5) * 1.5 - this.dy * 0.05,
+            life: 0,
+            maxLife: Math.random() * 25 + 15,
+            size: Math.random() * 1.8 + 0.6,
+            color: Math.random() > 0.5 ? '#35d7ff' : '#ff7a59',
+          });
+        }
+
+        if (this.life >= this.maxLife || this.x > width + 200 || this.y > height + 200) {
+          this.active = false;
         }
       }
 
-      setup() {
-        const gl = this.gl;
-        if (!gl) return;
-        this.vs = gl.createShader(gl.VERTEX_SHADER);
-        this.fs = gl.createShader(gl.FRAGMENT_SHADER);
-        this.compile(this.vs, this.vertexSrc);
-        this.compile(this.fs, this.shaderSource);
-        this.program = gl.createProgram();
-        gl.attachShader(this.program, this.vs);
-        gl.attachShader(this.program, this.fs);
-        gl.linkProgram(this.program);
+      draw(c) {
+        if (!this.active) return;
 
-        if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-          console.error(gl.getProgramInfoLog(this.program));
+        const tailX = this.x - Math.cos(this.angle) * this.length;
+        const tailY = this.y - Math.sin(this.angle) * this.length;
+
+        // Gradient for shooting star trail
+        const grad = c.createLinearGradient(this.x, this.y, tailX, tailY);
+        const fadeInOut = Math.sin((this.life / this.maxLife) * Math.PI);
+        const alpha = Math.min(1, fadeInOut * 1.3);
+
+        grad.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+        grad.addColorStop(0.15, `rgba(53, 215, 255, ${alpha * 0.85})`);
+        grad.addColorStop(0.55, `rgba(255, 122, 89, ${alpha * 0.45})`);
+        grad.addColorStop(1, 'rgba(255, 122, 89, 0)');
+
+        c.save();
+        c.lineWidth = this.headRadius * 1.5;
+        c.lineCap = 'round';
+        c.strokeStyle = grad;
+        c.beginPath();
+        c.moveTo(this.x, this.y);
+        c.lineTo(tailX, tailY);
+        c.stroke();
+
+        // Glowing Head Halo
+        c.beginPath();
+        c.arc(this.x, this.y, this.headRadius * 2.8, 0, Math.PI * 2);
+        c.fillStyle = `rgba(180, 240, 255, ${alpha * 0.6})`;
+        c.fill();
+
+        c.beginPath();
+        c.arc(this.x, this.y, this.headRadius, 0, Math.PI * 2);
+        c.fillStyle = '#ffffff';
+        c.fill();
+        c.restore();
+      }
+    }
+
+    // Keep 3 shooting stars pool
+    for (let i = 0; i < 3; i++) {
+      const star = new ShootingStar();
+      // Stagger initial start times
+      star.life = Math.floor(Math.random() * star.maxLife * 0.7);
+      shootingStars.push(star);
+    }
+
+    // --- Mouse Stardust Interactive Trail ---
+    const pointer = { x: -1000, y: -1000 };
+    const handlePointerMove = (e) => {
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      // Add cursor stardust
+      for (let i = 0; i < 2; i++) {
+        particles.push({
+          x: pointer.x + (Math.random() - 0.5) * 12,
+          y: pointer.y + (Math.random() - 0.5) * 12,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: Math.random() * -0.8 - 0.2,
+          life: 0,
+          maxLife: Math.random() * 30 + 20,
+          size: Math.random() * 2 + 0.8,
+          color: Math.random() > 0.5 ? '#35d7ff' : '#ffd486',
+        });
+      }
+    };
+    window.addEventListener('pointermove', handlePointerMove);
+
+    // --- Main Render Loop ---
+    let frameTime = 0;
+    const render = () => {
+      frameTime += 0.016;
+
+      // 1. Draw Deep Space Background with Ambient Cosmic Glow
+      ctx.fillStyle = '#060710';
+      ctx.fillRect(0, 0, width, height);
+
+      // Cyan nebula glow (top left)
+      const grad1 = ctx.createRadialGradient(width * 0.2, height * 0.25, 10, width * 0.2, height * 0.25, width * 0.5);
+      grad1.addColorStop(0, 'rgba(30, 75, 140, 0.18)');
+      grad1.addColorStop(0.6, 'rgba(15, 35, 75, 0.08)');
+      grad1.addColorStop(1, 'rgba(6, 7, 16, 0)');
+      ctx.fillStyle = grad1;
+      ctx.fillRect(0, 0, width, height);
+
+      // Warm Coral nebula glow (top right)
+      const grad2 = ctx.createRadialGradient(width * 0.8, height * 0.35, 10, width * 0.8, height * 0.35, width * 0.55);
+      grad2.addColorStop(0, 'rgba(140, 50, 70, 0.14)');
+      grad2.addColorStop(0.6, 'rgba(60, 20, 40, 0.06)');
+      grad2.addColorStop(1, 'rgba(6, 7, 16, 0)');
+      ctx.fillStyle = grad2;
+      ctx.fillRect(0, 0, width, height);
+
+      // 2. Render Twinkling Starfield
+      for (let i = 0; i < stars.length; i++) {
+        const s = stars[i];
+        s.phase += s.twinkleSpeed;
+        const currentAlpha = Math.max(0.1, s.baseAlpha + Math.sin(s.phase) * 0.35);
+
+        ctx.fillStyle = s.color;
+        ctx.globalAlpha = currentAlpha;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cross flare for larger bright stars
+        if (s.radius > 1.7 && currentAlpha > 0.65) {
+          ctx.strokeStyle = s.color;
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(s.x - s.radius * 2.5, s.y);
+          ctx.lineTo(s.x + s.radius * 2.5, s.y);
+          ctx.moveTo(s.x, s.y - s.radius * 2.5);
+          ctx.lineTo(s.x, s.y + s.radius * 2.5);
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1.0;
+
+      // 3. Update & Draw Shooting Stars
+      for (let i = 0; i < shootingStars.length; i++) {
+        const star = shootingStars[i];
+        if (!star.active) {
+          star.reset();
+        } else {
+          star.update();
+          star.draw(ctx);
         }
       }
 
-      init() {
-        const gl = this.gl;
-        if (!gl) return;
-        const program = this.program;
-        
-        this.buffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+      // 4. Update & Draw Particles (sparks + mouse stardust)
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life++;
 
-        const position = gl.getAttribLocation(program, 'position');
-        gl.enableVertexAttribArray(position);
-        gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+        const pAlpha = 1 - p.life / p.maxLife;
+        if (p.life >= p.maxLife) {
+          particles.splice(i, 1);
+          continue;
+        }
 
-        program.resolution = gl.getUniformLocation(program, 'resolution');
-        program.time = gl.getUniformLocation(program, 'time');
-        program.move = gl.getUniformLocation(program, 'move');
-        program.touch = gl.getUniformLocation(program, 'touch');
-        program.pointerCount = gl.getUniformLocation(program, 'pointerCount');
-        program.pointers = gl.getUniformLocation(program, 'pointers');
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, pAlpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * pAlpha, 0, Math.PI * 2);
+        ctx.fill();
       }
+      ctx.globalAlpha = 1.0;
 
-      render(now = 0) {
-        const gl = this.gl;
-        if (!gl) return;
-        const program = this.program;
-        
-        if (!program || gl.getProgramParameter(program, gl.DELETE_STATUS)) return;
-
-        gl.clearColor(0, 0, 0, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        gl.useProgram(program);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-        
-        gl.uniform2f(program.resolution, this.canvas.width, this.canvas.height);
-        gl.uniform1f(program.time, now * 1e-3);
-        gl.uniform2f(program.move, ...this.mouseMove);
-        gl.uniform2f(program.touch, ...this.mouseCoords);
-        gl.uniform1i(program.pointerCount, this.nbrOfPointers);
-        gl.uniform2fv(program.pointers, this.pointerCoords);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      }
-    }
-
-    // Pointer Handler class with clean destroy
-    class PointerHandler {
-      constructor(element, scaleVal) {
-        this.scale = scaleVal;
-        this.active = false;
-        this.pointers = new Map();
-        this.lastCoords = [0, 0];
-        this.moves = [0, 0];
-        
-        const map = (el, sc, x, y) => [x * sc, el.height - y * sc];
-
-        this.onDown = (e) => {
-          this.active = true;
-          this.pointers.set(e.pointerId, map(element, this.getScale(), e.clientX, e.clientY));
-        };
-
-        this.onUp = (e) => {
-          if (this.count === 1) {
-            this.lastCoords = this.first;
-          }
-          this.pointers.delete(e.pointerId);
-          this.active = this.pointers.size > 0;
-        };
-
-        this.onMove = (e) => {
-          if (!this.active) return;
-          this.lastCoords = [e.clientX, e.clientY];
-          this.pointers.set(e.pointerId, map(element, this.getScale(), e.clientX, e.clientY));
-          this.moves = [this.moves[0] + e.movementX, this.moves[1] + e.movementY];
-        };
-
-        window.addEventListener('pointerdown', this.onDown);
-        window.addEventListener('pointerup', this.onUp);
-        window.addEventListener('pointermove', this.onMove);
-      }
-
-      destroy() {
-        window.removeEventListener('pointerdown', this.onDown);
-        window.removeEventListener('pointerup', this.onUp);
-        window.removeEventListener('pointermove', this.onMove);
-      }
-
-      getScale() {
-        return this.scale;
-      }
-
-      updateScale(scaleVal) {
-        this.scale = scaleVal;
-      }
-
-      get count() {
-        return this.pointers.size;
-      }
-
-      get move() {
-        return this.moves;
-      }
-
-      get coords() {
-        return this.pointers.size > 0 
-          ? Array.from(this.pointers.values()).flat() 
-          : [0, 0];
-      }
-
-      get first() {
-        return this.pointers.size > 0 ? this.pointers.values().next().value : this.lastCoords;
-      }
-    }
-
-    const resize = () => {
-      if (!canvasRef.current || typeof window === 'undefined') return;
-      
-      const canvasEl = canvasRef.current;
-      const currentDpr = Math.max(1, 0.5 * (window.devicePixelRatio || 1));
-      
-      canvasEl.width = window.innerWidth * currentDpr;
-      canvasEl.height = window.innerHeight * currentDpr;
-      
-      if (rendererRef.current) {
-        rendererRef.current.updateScale(currentDpr);
-      }
+      animFrameId = requestAnimationFrame(render);
     };
 
-    const loop = (now) => {
-      if (!rendererRef.current || !pointersRef.current) return;
-      
-      rendererRef.current.updateMouse(pointersRef.current.first);
-      rendererRef.current.updatePointerCount(pointersRef.current.count);
-      rendererRef.current.updatePointerCoords(pointersRef.current.coords);
-      rendererRef.current.updateMove(pointersRef.current.move);
-      rendererRef.current.render(now);
-      animationFrameRef.current = requestAnimationFrame(loop);
-    };
+    render();
 
-    rendererRef.current = new WebGLRenderer(canvas, dpr);
-    pointersRef.current = new PointerHandler(canvas, dpr);
-    
-    rendererRef.current.setup();
-    rendererRef.current.init();
-    
-    resize();
-    
-    if (rendererRef.current.test(defaultShaderSource) === null) {
-      rendererRef.current.updateShader(defaultShaderSource);
-    }
-    
-    loop(0);
-    
-    window.addEventListener('resize', resize);
-    
     return () => {
-      window.removeEventListener('resize', resize);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (pointersRef.current) {
-        pointersRef.current.destroy();
-      }
-      if (rendererRef.current) {
-        rendererRef.current.reset();
-      }
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('pointermove', handlePointerMove);
+      if (animFrameId) cancelAnimationFrame(animFrameId);
     };
   }, []);
-
-  return canvasRef;
-};
-
-const defaultShaderSource = `#version 300 es
-precision highp float;
-out vec4 O;
-uniform vec2 resolution;
-uniform float time;
-#define FC gl_FragCoord.xy
-#define T time
-#define R resolution
-#define MN min(R.x,R.y)
-float rnd(vec2 p) {
-  p=fract(p*vec2(12.9898,78.233));
-  p+=dot(p,p+34.56);
-  return fract(p.x*p.y);
-}
-float noise(in vec2 p) {
-  vec2 i=floor(p), f=fract(p), u=f*f*(3.-2.*f);
-  float
-  a=rnd(i),
-  b=rnd(i+vec2(1,0)),
-  c=rnd(i+vec2(0,1)),
-  d=rnd(i+1.);
-  return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);
-}
-float fbm(vec2 p) {
-  float st=.0, a=1.; mat2 m=mat2(1.,-.5,.2,1.2);
-  for (int i=0; i<5; i++) {
-    st+=a*noise(p);
-    p*=2.*m;
-    a*=.5;
-  }
-  return st;
-}
-float clouds(vec2 p) {
-	float d=1., t=.0;
-	for (float i=.0; i<3.; i++) {
-		float a=d*fbm(i*10.+p.x*.2+.2*(1.+i)*p.y+d+i*i+p);
-		t=mix(t,d,a);
-		d=a;
-		p*=2./(i+1.);
-	}
-	return t;
-}
-void main(void) {
-	vec2 uv=(FC-.5*R)/MN,st=uv*vec2(2,1);
-	vec3 col=vec3(0);
-	float bg=clouds(vec2(st.x+T*.2,-st.y));
-	uv*=1.-.2*(sin(T*.15)*.5+.5);
-	for (float i=1.; i<10.; i++) {
-		uv+=.08*cos(i*vec2(.1+.01*i, .8)+i*i+T*.25+.1*uv.x);
-		vec2 p=uv;
-		float d=length(p);
-		col+=.0008/d*(cos(sin(i)*vec3(0.8,1.8,3.2))+1.);
-		float b=noise(i+p+bg*1.5);
-		col+=.0012*b/length(max(p,vec2(b*p.x*.02,p.y)));
-		col=mix(col,vec3(bg*.04,bg*.08,bg*.18),d);
-	}
-	O=vec4(col,1);
-}`;
-
-export default function AnimatedShaderHero() {
-  const canvasRef = useShaderBackground();
 
   return (
     <canvas
@@ -368,12 +272,10 @@ export default function AnimatedShaderHero() {
         left: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: -1,
+        zIndex: 0,
         pointerEvents: 'none',
-        background: '#060710',
         display: 'block',
       }}
     />
   );
 }
-
