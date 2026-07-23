@@ -43,9 +43,8 @@ button:disabled {
 .animated-shader-hero {
   position: relative;
   min-height: 100svh;
-  overflow: hidden;
   padding: 26px clamp(18px, 4vw, 56px) 48px;
-  isolation: isolate;
+  background: transparent;
 }
 
 .shader-field {

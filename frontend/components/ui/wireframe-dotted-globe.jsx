@@ -41,16 +41,24 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
 
       const currentScale = projection.scale()
       const scaleFactor = currentScale / baseRadius
+      const cx = containerWidth / 2
+      const cy = containerHeight / 2
+
+      // Clip everything to the sphere circle so zoomed features never escape to rectangle
+      context.save()
+      context.beginPath()
+      context.arc(cx, cy, currentScale, 0, 2 * Math.PI)
+      context.clip()
 
       // Glass ocean background
       context.beginPath()
-      context.arc(containerWidth / 2, containerHeight / 2, currentScale, 0, 2 * Math.PI)
+      context.arc(cx, cy, currentScale, 0, 2 * Math.PI)
       const grad = context.createRadialGradient(
-        containerWidth / 2 - currentScale * 0.3,
-        containerHeight / 2 - currentScale * 0.3,
+        cx - currentScale * 0.3,
+        cy - currentScale * 0.3,
         currentScale * 0.1,
-        containerWidth / 2,
-        containerHeight / 2,
+        cx,
+        cy,
         currentScale
       )
       grad.addColorStop(0, "rgba(20, 30, 65, 0.75)")
@@ -58,11 +66,6 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
       grad.addColorStop(1, "rgba(5, 8, 20, 0.85)")
       context.fillStyle = grad
       context.fill()
-
-      // Atmosphere ring
-      context.strokeStyle = "rgba(53, 215, 255, 0.55)"
-      context.lineWidth = 1.5 * scaleFactor
-      context.stroke()
 
       // Graticule grid
       const graticules = geoGraticule().step([12, 12])
@@ -84,7 +87,17 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
         context.lineWidth = 1.3 * scaleFactor
         context.stroke()
       }
+
+      context.restore()
+
+      // Atmosphere ring drawn OUTSIDE clip so it always shows at sphere edge
+      context.beginPath()
+      context.arc(cx, cy, currentScale, 0, 2 * Math.PI)
+      context.strokeStyle = "rgba(53, 215, 255, 0.55)"
+      context.lineWidth = 1.5 * scaleFactor
+      context.stroke()
     }
+
 
     const loadWorldData = async () => {
       try {

@@ -93,7 +93,9 @@ export default function Home() {
 
   return (
     <main ref={root}>
-      <AnimatedShaderHero className="hero">
+      <AnimatedShaderHero />
+
+      <section className="animated-shader-hero hero">
         <nav className="topbar">
           <a className="wordmark nav-item">Trial<span>Bridge</span></a>
           <div className="nav-links">
@@ -168,7 +170,9 @@ export default function Home() {
             <div className="metric-card"><strong>Doctor-ready</strong><span>Compare, save, and print a focused brief</span></div>
           </div>
         </div>
-      </AnimatedShaderHero>
+      </section>
+
+
 
       {(saved.length > 0 || compare.length > 0) && (
         <section className="workspace reveal">

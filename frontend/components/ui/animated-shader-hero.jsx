@@ -355,19 +355,25 @@ void main(void) {
 	O=vec4(col,1);
 }`;
 
-export default function AnimatedShaderHero({ children, className = '' }) {
+export default function AnimatedShaderHero() {
   const canvasRef = useShaderBackground();
 
   return (
-    <section className={`animated-shader-hero ${className} relative overflow-hidden min-h-[100dvh]`}>
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-        style={{ background: '#060710', zIndex: 0 }}
-      />
-      <div className="relative z-10 w-full">
-        {children}
-      </div>
-    </section>
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: -1,
+        pointerEvents: 'none',
+        background: '#060710',
+        display: 'block',
+      }}
+    />
   );
 }
+
