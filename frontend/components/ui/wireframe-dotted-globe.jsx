@@ -18,7 +18,7 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
 
     const containerWidth = width
     const containerHeight = height
-    const radius = Math.min(containerWidth, containerHeight) / 2.2
+    const baseRadius = Math.min(containerWidth, containerHeight) / 2.2
 
     const dpr = window.devicePixelRatio || 1
     canvas.width = containerWidth * dpr
@@ -28,7 +28,7 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
     context.scale(dpr, dpr)
 
     const projection = geoOrthographic()
-      .scale(radius)
+      .scale(baseRadius)
       .translate([containerWidth / 2, containerHeight / 2])
       .clipAngle(90)
 
@@ -40,7 +40,7 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
       context.clearRect(0, 0, containerWidth, containerHeight)
 
       const currentScale = projection.scale()
-      const scaleFactor = currentScale / radius
+      const scaleFactor = currentScale / baseRadius
 
       // Glass ocean background
       context.beginPath()
@@ -53,14 +53,14 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
         containerHeight / 2,
         currentScale
       )
-      grad.addColorStop(0, "rgba(20, 30, 65, 0.65)")
-      grad.addColorStop(0.7, "rgba(8, 12, 30, 0.5)")
-      grad.addColorStop(1, "rgba(5, 8, 20, 0.75)")
+      grad.addColorStop(0, "rgba(20, 30, 65, 0.75)")
+      grad.addColorStop(0.7, "rgba(8, 12, 30, 0.6)")
+      grad.addColorStop(1, "rgba(5, 8, 20, 0.85)")
       context.fillStyle = grad
       context.fill()
 
       // Atmosphere ring
-      context.strokeStyle = "rgba(53, 215, 255, 0.45)"
+      context.strokeStyle = "rgba(53, 215, 255, 0.55)"
       context.lineWidth = 1.5 * scaleFactor
       context.stroke()
 
@@ -68,7 +68,7 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
       const graticules = geoGraticule().step([12, 12])
       context.beginPath()
       path(graticules())
-      context.strokeStyle = "rgba(255, 255, 255, 0.14)"
+      context.strokeStyle = "rgba(255, 255, 255, 0.16)"
       context.lineWidth = 0.6 * scaleFactor
       context.stroke()
 
@@ -78,10 +78,10 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
         landFeatures.features.forEach((feature) => {
           path(feature)
         })
-        context.fillStyle = "rgba(255, 122, 89, 0.15)"
+        context.fillStyle = "rgba(255, 122, 89, 0.18)"
         context.fill()
-        context.strokeStyle = "rgba(255, 122, 89, 0.55)"
-        context.lineWidth = 1.2 * scaleFactor
+        context.strokeStyle = "rgba(255, 122, 89, 0.65)"
+        context.lineWidth = 1.3 * scaleFactor
         context.stroke()
       }
     }
@@ -116,16 +116,20 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
 
     const rotationTimer = timer(rotate)
 
-    const handleMouseDown = (event) => {
+    // Interactive Dragging
+    const handleDragStart = (clientX, clientY) => {
       autoRotate = false
-      const startX = event.clientX
-      const startY = event.clientY
+      const startX = clientX
+      const startY = clientY
       const startRotation = [...rotation]
 
-      const handleMouseMove = (moveEvent) => {
-        const sensitivity = 0.3
-        const dx = moveEvent.clientX - startX
-        const dy = moveEvent.clientY - startY
+      const handleDragMove = (moveEvent) => {
+        const currentX = moveEvent.touches ? moveEvent.touches[0].clientX : moveEvent.clientX
+        const currentY = moveEvent.touches ? moveEvent.touches[0].clientY : moveEvent.clientY
+        const sensitivity = 0.35
+
+        const dx = currentX - startX
+        const dy = currentY - startY
 
         rotation[0] = startRotation[0] + dx * sensitivity
         rotation[1] = startRotation[1] - dy * sensitivity
@@ -135,34 +139,52 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
         render()
       }
 
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove)
-        document.removeEventListener("mouseup", handleMouseUp)
+      const handleDragEnd = () => {
+        document.removeEventListener("mousemove", handleDragMove)
+        document.removeEventListener("mouseup", handleDragEnd)
+        document.removeEventListener("touchmove", handleDragMove)
+        document.removeEventListener("touchend", handleDragEnd)
         setTimeout(() => {
           autoRotate = true
-        }, 10)
+        }, 500)
       }
 
-      document.addEventListener("mousemove", handleMouseMove)
-      document.addEventListener("mouseup", handleMouseUp)
+      document.addEventListener("mousemove", handleDragMove)
+      document.addEventListener("mouseup", handleDragEnd)
+      document.addEventListener("touchmove", handleDragMove, { passive: true })
+      document.addEventListener("touchend", handleDragEnd)
     }
 
+    const handleMouseDown = (e) => handleDragStart(e.clientX, e.clientY)
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        handleDragStart(e.touches[0].clientX, e.touches[0].clientY)
+      }
+    }
+
+    // Interactive Zooming with non-passive wheel listener
     const handleWheel = (event) => {
       event.preventDefault()
-      const scaleFactor = event.deltaY > 0 ? 0.92 : 1.08
-      const newRadius = Math.max(radius * 0.6, Math.min(radius * 2.2, projection.scale() * scaleFactor))
-      projection.scale(newRadius)
+      const zoomFactor = event.deltaY > 0 ? 0.9 : 1.11
+      const currentScale = projection.scale()
+      const minScale = baseRadius * 0.4
+      const maxScale = baseRadius * 3.5
+
+      const newScale = Math.max(minScale, Math.min(maxScale, currentScale * zoomFactor))
+      projection.scale(newScale)
       render()
     }
 
     canvas.addEventListener("mousedown", handleMouseDown)
-    canvas.addEventListener("wheel", handleWheel)
+    canvas.addEventListener("touchstart", handleTouchStart, { passive: true })
+    canvas.addEventListener("wheel", handleWheel, { passive: false })
 
     loadWorldData()
 
     return () => {
       rotationTimer.stop()
       canvas.removeEventListener("mousedown", handleMouseDown)
+      canvas.removeEventListener("touchstart", handleTouchStart)
       canvas.removeEventListener("wheel", handleWheel)
     }
   }, [width, height])
@@ -182,10 +204,10 @@ export default function RotatingEarth({ width = 440, height = 440, className = "
     <div className={`relative flex flex-col items-center justify-center ${className}`}>
       <canvas
         ref={canvasRef}
-        className="w-auto h-auto cursor-grab active:cursor-grabbing pointer-events-auto"
+        className="w-auto h-auto cursor-grab active:cursor-grabbing pointer-events-auto touch-none"
       />
-      <div className="mt-2 text-[10px] text-amber-200/70 tracking-widest uppercase px-3 py-1 rounded-full bg-[#090d22]/80 border border-white/10 backdrop-blur-md">
-        Drag to rotate • Scroll to zoom
+      <div className="mt-2 text-[10px] text-amber-200/75 tracking-widest uppercase px-3 py-1 rounded-full bg-[#090d22]/80 border border-white/10 backdrop-blur-md select-none">
+        Drag to rotate • Scroll / Pinch to zoom
       </div>
     </div>
   )
